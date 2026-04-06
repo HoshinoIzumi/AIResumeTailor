@@ -1,0 +1,17 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      # Webhook URLs shown in the UI (adjust host if you tunnel or deploy)
+      WEBHOOK_URL: http://localhost:5678/
+      # Available to Code nodes as $env.N8N_WEBHOOK_SECRET (must match Next.js / curl tests)
+      N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET:-}
+    env_file:
+      - .env
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:

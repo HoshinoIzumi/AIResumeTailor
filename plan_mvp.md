@@ -27,7 +27,7 @@ AI Resume Tailor is a **workflow-driven AI system** composed of three layers:
 
 ### How this doc aligns with [plan.md](plan.md)
 
-* **[plan_mvp.md](plan_mvp.md) (this file)** = **execution path** to something **usable** first: n8n owns the workflow; contract stays minimal (`jdText`, English output) until you choose to expand.
+* **[plan_mvp.md](plan_mvp.md) (this file)** = **execution path** to something **usable** first: n8n owns the workflow; contract stays minimal (**required** `jdText`; optional posting metadata `listing` fields; English output) until you choose to expand.
 * **[plan.md](plan.md)** = **full product spec**: profiles, bilingual, impact/metrics honesty, Zod, optional **code-first** stack without n8n. Use it to **upgrade** data shape and quality after MVP works — not as a gate before MVP.
 
 ---
@@ -71,7 +71,7 @@ AI Resume Tailor is a **workflow-driven AI system** composed of three layers:
 
 * **Single implicit profile** in Phase 1–2: one `projects.json` library; no `profileId` in the API contract yet.
 * **Fixed output language**: default **English** for all LLM-generated resume and gap text (prompts assume EN; no locale switch in UI until a later phase).
-* **Request body**: **`jdText` only** for `/api/analyze-jd` → n8n until you intentionally extend the contract.
+* **Request body**: **`jdText` required**; optional **`jobUrl`**, **`companyWebsite`**, **`companyIntroduction`**, **`capturedAt`** (see §Data Flow Contract) for `/api/analyze-jd` → n8n until you intentionally extend the contract further.
 * **Full product alignment** (multi-profile, `outputLocale`, bilingual runs, structured `impact` split) lives in [plan.md](plan.md); treat that as the **north star** and add fields incrementally when you exit “workflow MVP” mode.
 
 ### Webhook security
@@ -140,9 +140,19 @@ Validate the **core AI workflow** using n8n + static data.
 
 ```json
 {
-  "jdText": "string"
+  "jdText": "string",
+  "jobUrl": "string",
+  "companyWebsite": "string",
+  "companyIntroduction": "string",
+  "capturedAt": "string"
 }
 ```
+
+* **`jdText`** — required (full job description text).
+* **`jobUrl`** — optional; URL of the job posting (any site).
+* **`companyWebsite`** — optional; employer’s public site.
+* **`companyIntroduction`** — optional; short company blurb as *you* captured it (paste from site / your notes).
+* **`capturedAt`** — optional; ISO-8601 timestamp when you recorded this row. If omitted, the workflow sets **server time** at webhook execution.
 
 *Later extensions* (see [plan.md](plan.md)): `profileId`, `outputLocale` (`zh` | `en`), optional `candidateContext` — add only when UI and Supabase catch up.
 
@@ -150,12 +160,20 @@ Validate the **core AI workflow** using n8n + static data.
 
 ```json
 {
+  "listing": {
+    "jobUrl": "string",
+    "companyWebsite": "string",
+    "companyIntroduction": "string",
+    "capturedAt": "string"
+  },
   "parsedJd": {},
   "matches": [],
   "resume": {},
   "gapAnalysis": {}
 }
 ```
+
+`listing` echoes the input fields (with `capturedAt` filled by the server if you did not send it) so analyses can be stored or shown next to the posting metadata.
 
 ---
 
@@ -197,7 +215,7 @@ Connect frontend with n8n workflow.
 
 #### Next.js API Route
 
-* Receives JD (`jdText` in body)
+* Receives JD (`jdText` in body) and optional listing fields (same shape as n8n)
 * Forwards request to **n8n webhook URL** from server env (e.g. `N8N_WEBHOOK_URL`) with **webhook secret** header (see §2)
 * Returns structured JSON to the client
 * **Do not** embed the raw n8n URL in client-side code
@@ -443,7 +461,7 @@ Turn into a **hireable project**
 | Topic | This MVP (`plan_mvp.md`) | Full plan (`plan.md`) |
 | --- | --- | --- |
 | Orchestration | **n8n** as the workflow engine | Next.js `llmClient` + Route Handlers (no n8n) |
-| Phase 1–2 contract | `jdText` only, single implicit profile, EN output | `profiles.json`, `profileId`, bilingual, Zod on server |
+| Phase 1–2 contract | `jdText` + optional listing metadata, single implicit profile, EN output | `profiles.json`, `profileId`, bilingual, Zod on server |
 | Persistence | Phase 3+ | Phase 4 in full plan naming |
 | **Migration** | Ship workflow first; when you need parity, either add n8n nodes/fields or port critical steps to code — **do not** block MVP on full parity |
 | **Implementation tool** | Repo built with **Cursor** (AI-assisted editing); estimates above assume Cursor for Next.js/TS, not for replacing n8n design in the cloud |

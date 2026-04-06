@@ -1,0 +1,91 @@
+{
+  "projects": [
+    {
+      "id": "proj-ecom-api",
+      "name": "E-commerce checkout API modernization",
+      "techStack": ["TypeScript", "Node.js", "PostgreSQL", "Redis", "Docker", "AWS ECS"],
+      "responsibilities": [
+        "Owned the payments and checkout domain API",
+        "Partnered with product and fraud teams on risk rules and retries",
+        "Ran incident reviews and drove SLO dashboards with the SRE team"
+      ],
+      "impact": {
+        "metricsVerified": [
+          "Cut p95 checkout latency from 820ms to 410ms over 6 months (APM)",
+          "Reduced payment failure rate from 4.2% to 2.1% after retry and idempotency fixes"
+        ],
+        "narrative": "Stabilized peak-traffic checkout by tightening idempotency keys, improving observability, and refactoring hot paths."
+      },
+      "evidenceLevel": "high"
+    },
+    {
+      "id": "proj-search",
+      "name": "Search relevance and ranking service",
+      "techStack": ["Python", "OpenSearch", "Kubernetes", "gRPC", "Prometheus"],
+      "responsibilities": [
+        "Maintained the search indexing pipeline and ranking experiments",
+        "Collaborated with ML engineers on feature stores for ranking signals",
+        "Defined success metrics with PMs (CTR, add-to-cart rate)"
+      ],
+      "impact": {
+        "metricsVerified": [
+          "Improved top-3 click-through rate by 12% in A/B tests (8-week experiment)"
+        ],
+        "narrative": "Shipped iterative ranking improvements with guardrails and offline evaluation before rollout."
+      },
+      "evidenceLevel": "high"
+    },
+    {
+      "id": "proj-mobile-sync",
+      "name": "Mobile offline sync and conflict resolution",
+      "techStack": ["Swift", "Kotlin", "GraphQL", "SQLite", "Protocol Buffers"],
+      "responsibilities": [
+        "Designed conflict resolution for offline-first mobile clients",
+        "Worked closely with mobile engineers on sync protocols and UX edge cases",
+        "Authored RFCs for versioning and migration of local schemas"
+      ],
+      "impact": {
+        "metricsVerified": [
+          "Lowered sync-related support tickets by 23% quarter over quarter"
+        ],
+        "narrative": "Made offline workflows predictable by clarifying merge rules and adding telemetry for conflict rates."
+      },
+      "evidenceLevel": "medium"
+    },
+    {
+      "id": "proj-data-pipeline",
+      "name": "Analytics event pipeline (batch + streaming)",
+      "techStack": ["Apache Spark", "Kafka", "dbt", "Snowflake", "Airflow"],
+      "responsibilities": [
+        "Owned core event quality checks and late-arriving data handling",
+        "Partnered with analysts on dimensional models for self-serve reporting",
+        "On-call rotation for pipeline failures and backfills"
+      ],
+      "impact": {
+        "metricsVerified": [
+          "Recovered 99.7% of daily volume within SLA after upstream schema drift",
+          "Cut average dbt run time by 18% via incremental model refactors"
+        ],
+        "narrative": "Improved trust in downstream metrics by tightening contracts and anomaly alerts."
+      },
+      "evidenceLevel": "high"
+    },
+    {
+      "id": "proj-internal-tools",
+      "name": "Internal admin portal for operations",
+      "techStack": ["React", "Next.js", "REST", "OAuth2", "PostgreSQL"],
+      "responsibilities": [
+        "Built workflows for ops teams to manage refunds and manual overrides",
+        "Implemented role-based access and audit logs",
+        "Gathered feedback through weekly sessions with support leads"
+      ],
+      "impact": {
+        "metricsVerified": [
+          "Reduced average handling time for tier-2 tickets by 15% (support analytics)"
+        ],
+        "narrative": "Reduced toil by replacing ad-hoc scripts with a guided, audited UI."
+      },
+      "evidenceLevel": "medium"
+    }
+  ]
+}

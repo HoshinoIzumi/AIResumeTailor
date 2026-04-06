@@ -1,0 +1,393 @@
+{
+  "name": "analyze_jd",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "analyze-jd",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1000001-0000-4000-8000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "analyze-jd-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const secret = $env.N8N_WEBHOOK_SECRET;\nconst item = $input.first().json;\nconst hdr = item.headers?.authorization || item.headers?.Authorization || '';\nconst token = typeof hdr === 'string' && hdr.match(/^Bearer\\s+(.+)$/i)\n  ? hdr.replace(/^Bearer\\s+/i, '').trim()\n  : '';\nif (!secret) {\n  return [{ json: { valid: true, body: item.body, headers: item.headers } }];\n}\nconst valid = token === secret;\nreturn [{ json: { valid, body: item.body, headers: item.headers } }];"
+      },
+      "id": "a1000001-0000-4000-8000-000000000002",
+      "name": "Validate Secret",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.valid }}",
+              "operation": "equal",
+              "value2": true
+            }
+          ]
+        },
+        "combineOperation": "all"
+      },
+      "id": "a1000001-0000-4000-8000-000000000003",
+      "name": "Authorized?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const projects = [{\"id\":\"proj-ecom-api\",\"name\":\"E-commerce checkout API modernization\",\"techStack\":[\"TypeScript\",\"Node.js\",\"PostgreSQL\",\"Redis\",\"Docker\",\"AWS ECS\"],\"responsibilities\":[\"Owned the payments and checkout domain API\",\"Partnered with product and fraud teams on risk rules and retries\",\"Ran incident reviews and drove SLO dashboards with the SRE team\"],\"impact\":{\"metricsVerified\":[\"Cut p95 checkout latency from 820ms to 410ms over 6 months (APM)\",\"Reduced payment failure rate from 4.2% to 2.1% after retry and idempotency fixes\"],\"narrative\":\"Stabilized peak-traffic checkout by tightening idempotency keys, improving observability, and refactoring hot paths.\"},\"evidenceLevel\":\"high\"},{\"id\":\"proj-search\",\"name\":\"Search relevance and ranking service\",\"techStack\":[\"Python\",\"OpenSearch\",\"Kubernetes\",\"gRPC\",\"Prometheus\"],\"responsibilities\":[\"Maintained the search indexing pipeline and ranking experiments\",\"Collaborated with ML engineers on feature stores for ranking signals\",\"Defined success metrics with PMs (CTR, add-to-cart rate)\"],\"impact\":{\"metricsVerified\":[\"Improved top-3 click-through rate by 12% in A/B tests (8-week experiment)\"],\"narrative\":\"Shipped iterative ranking improvements with guardrails and offline evaluation before rollout.\"},\"evidenceLevel\":\"high\"},{\"id\":\"proj-mobile-sync\",\"name\":\"Mobile offline sync and conflict resolution\",\"techStack\":[\"Swift\",\"Kotlin\",\"GraphQL\",\"SQLite\",\"Protocol Buffers\"],\"responsibilities\":[\"Designed conflict resolution for offline-first mobile clients\",\"Worked closely with mobile engineers on sync protocols and UX edge cases\",\"Authored RFCs for versioning and migration of local schemas\"],\"impact\":{\"metricsVerified\":[\"Lowered sync-related support tickets by 23% quarter over quarter\"],\"narrative\":\"Made offline workflows predictable by clarifying merge rules and adding telemetry for conflict rates.\"},\"evidenceLevel\":\"medium\"},{\"id\":\"proj-data-pipeline\",\"name\":\"Analytics event pipeline (batch + streaming)\",\"techStack\":[\"Apache Spark\",\"Kafka\",\"dbt\",\"Snowflake\",\"Airflow\"],\"responsibilities\":[\"Owned core event quality checks and late-arriving data handling\",\"Partnered with analysts on dimensional models for self-serve reporting\",\"On-call rotation for pipeline failures and backfills\"],\"impact\":{\"metricsVerified\":[\"Recovered 99.7% of daily volume within SLA after upstream schema drift\",\"Cut average dbt run time by 18% via incremental model refactors\"],\"narrative\":\"Improved trust in downstream metrics by tightening contracts and anomaly alerts.\"},\"evidenceLevel\":\"high\"},{\"id\":\"proj-internal-tools\",\"name\":\"Internal admin portal for operations\",\"techStack\":[\"React\",\"Next.js\",\"REST\",\"OAuth2\",\"PostgreSQL\"],\"responsibilities\":[\"Built workflows for ops teams to manage refunds and manual overrides\",\"Implemented role-based access and audit logs\",\"Gathered feedback through weekly sessions with support leads\"],\"impact\":{\"metricsVerified\":[\"Reduced average handling time for tier-2 tickets by 15% (support analytics)\"],\"narrative\":\"Reduced toil by replacing ad-hoc scripts with a guided, audited UI.\"},\"evidenceLevel\":\"medium\"}];\nconst body = $input.first().json.body || {};\nconst jdText = String(body.jdText || '').trim();\nif (!jdText) throw new Error('jdText is required in the JSON body');\nconst jobUrl = String(body.jobUrl || body.jobPostingUrl || '').trim();\nconst companyWebsite = String(body.companyWebsite || '').trim();\nconst companyIntroduction = String(body.companyIntroduction || body.companyIntro || '').trim();\nlet capturedAt = String(body.capturedAt || '').trim();\nif (!capturedAt) {\n  capturedAt = new Date().toISOString();\n}\nconst listing = {\n  jobUrl,\n  companyWebsite,\n  companyIntroduction,\n  capturedAt,\n};\nreturn [{ json: { jdText, projects, listing } }];"
+      },
+      "id": "a1000001-0000-4000-8000-000000000004",
+      "name": "Merge Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "complete",
+        "chatModel": "gpt-4o-mini",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You extract structured data from a job description. Reply with a single JSON object only (no markdown), keys: roleTitle (string), requiredSkills (string array), preferredSkills (string array), responsibilities (string array of short phrases), keywords (string array). Use English. Do not invent employers or credentials not implied by the text."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.jdText }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 1200
+        },
+        "simplifyOutput": true
+      },
+      "id": "a1000001-0000-4000-8000-000000000005",
+      "name": "Parse JD",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function stripFence(s) {\n  let t = String(s || '').trim();\n  if (t.startsWith('```')) {\n    const nl = t.indexOf('\\n');\n    t = nl === -1 ? '' : t.slice(nl + 1);\n  }\n  const end = t.lastIndexOf('```');\n  if (end !== -1) t = t.slice(0, end).trim();\n  return t.trim();\n}\nfunction parseJsonish(s) {\n  return JSON.parse(stripFence(s));\n}\nconst msg = $input.first().json.message?.content || $input.first().json.text || '';\nlet parsedJd;\ntry {\n  parsedJd = parseJsonish(msg);\n} catch (e) {\n  throw new Error('Parse JD: expected JSON object. Got: ' + String(msg).slice(0, 400));\n}\nconst base = $('Merge Input').first().json;\nconst jdText = base.jdText;\nconst projects = base.projects;\nconst skillBag = (parsedJd.requiredSkills || []).concat(parsedJd.preferredSkills || []).map((x) => String(x).toLowerCase());\nconst kw = (parsedJd.keywords || []).map((x) => String(x).toLowerCase());\nconst blob = (parsedJd.responsibilities || []).join(' ').toLowerCase();\nfunction scoreProject(p) {\n  const tech = (p.techStack || []).map((x) => String(x).toLowerCase());\n  const resp = (p.responsibilities || []).join(' ').toLowerCase();\n  let s = 0;\n  for (const t of tech) {\n    for (const sk of skillBag) {\n      if (sk && (t.includes(sk) || sk.includes(t))) s += 2;\n    }\n  }\n  for (const k of kw) {\n    if (k && (resp.includes(k) || tech.some((t) => t.includes(k)))) s += 1.5;\n  }\n  for (const k of kw) {\n    if (k && blob.includes(k)) s += 0.5;\n  }\n  return Math.round(s * 10) / 10;\n}\nconst ranked = projects\n  .map((p) => ({ projectId: p.id, name: p.name, score: scoreProject(p), project: p }))\n  .sort((a, b) => b.score - a.score)\n  .slice(0, 5);\nconst listing = base.listing || {};\nreturn [{ json: { jdText, parsedJd, projects, rankedMatches: ranked, listing } }];"
+      },
+      "id": "a1000001-0000-4000-8000-000000000006",
+      "name": "Parse and Score Projects",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "complete",
+        "chatModel": "gpt-4o-mini",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You explain fit between job needs and candidate projects. The payload may include listing (jobUrl, companyWebsite, companyIntroduction, capturedAt) as user-provided context—use it only to frame fit; do not invent facts beyond listing + JD + projects. Reply with JSON only (no markdown): { \"explanations\": [ { \"projectId\": string, \"fitSummary\": string, \"transferableSkills\": string[] } ] }. Cover each project in rankedMatches. Use only evidence from the provided project objects; do not invent employers, dates, or metrics. English only."
+            },
+            {
+              "role": "user",
+              "content": "={{ JSON.stringify({ listing: $(\"Merge Input\").first().json.listing, parsedJd: $json.parsedJd, rankedMatches: $json.rankedMatches }) }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 2000
+        },
+        "simplifyOutput": true
+      },
+      "id": "a1000001-0000-4000-8000-000000000007",
+      "name": "Match Explanation",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "complete",
+        "chatModel": "gpt-4o-mini",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You write a concise resume tailored to the job using ONLY the project facts provided. If listing.companyIntroduction or listing.companyWebsite is present, you may align wording to that employer context without inventing new facts. Reply with JSON only (no markdown): { \"summary\": string, \"highlights\": string[] (bullet points), \"skills\": string[] }. You may only cite metrics that appear in impact.metricsVerified for a project; never invent numbers. English only."
+            },
+            {
+              "role": "user",
+              "content": "={{ JSON.stringify({ listing: $(\"Merge Input\").first().json.listing, parsedJd: $(\"Parse and Score Projects\").first().json.parsedJd, rankedMatches: $(\"Parse and Score Projects\").first().json.rankedMatches }) }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.35,
+          "maxTokens": 2500
+        },
+        "simplifyOutput": true
+      },
+      "id": "a1000001-0000-4000-8000-000000000008",
+      "name": "Resume Generation",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "complete",
+        "chatModel": "gpt-4o-mini",
+        "prompt": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You compare the job to the candidate project set and draft gap analysis. Reply with JSON only (no markdown): { \"strengths\": string[], \"gaps\": string[], \"suggestedNextSteps\": string[] }. Be specific; do not fabricate experience. English only."
+            },
+            {
+              "role": "user",
+              "content": "={{ JSON.stringify({ listing: $(\"Merge Input\").first().json.listing, parsedJd: $(\"Parse and Score Projects\").first().json.parsedJd, rankedMatches: $(\"Parse and Score Projects\").first().json.rankedMatches, resumeLlmOutput: $json.message?.content }) }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.35,
+          "maxTokens": 2000
+        },
+        "simplifyOutput": true
+      },
+      "id": "a1000001-0000-4000-8000-000000000009",
+      "name": "Gap Analysis",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function stripFence(s) {\n  let t = String(s || '').trim();\n  if (t.startsWith('```')) {\n    const nl = t.indexOf('\\n');\n    t = nl === -1 ? '' : t.slice(nl + 1);\n  }\n  const end = t.lastIndexOf('```');\n  if (end !== -1) t = t.slice(0, end).trim();\n  return t.trim();\n}\nfunction parseJsonish(s) {\n  return JSON.parse(stripFence(s));\n}\nconst gapRaw = $input.first().json.message?.content || '';\nlet gapAnalysis;\ntry {\n  gapAnalysis = parseJsonish(gapRaw);\n} catch (e) {\n  gapAnalysis = { raw: gapRaw, parseError: String(e.message) };\n}\nconst score = $('Parse and Score Projects').first().json;\nconst matchMsg = $('Match Explanation').first().json.message?.content || '';\nconst resumeMsg = $('Resume Generation').first().json.message?.content || '';\nlet matchBlock;\nlet resume;\ntry {\n  matchBlock = parseJsonish(matchMsg);\n} catch (e) {\n  matchBlock = { explanations: [], raw: matchMsg };\n}\ntry {\n  resume = parseJsonish(resumeMsg);\n} catch (e) {\n  resume = { raw: resumeMsg };\n}\nconst matches = (score.rankedMatches || []).map((rm) => {\n  const ex = (matchBlock.explanations || []).find((e) => e.projectId === rm.projectId);\n  return {\n    projectId: rm.projectId,\n    name: rm.name,\n    score: rm.score,\n    reasoning: ex?.fitSummary || ex?.reasoning || '',\n    transferableSkills: ex?.transferableSkills || [],\n  };\n});\nconst listing = $('Merge Input').first().json.listing || {};\nreturn [{ json: { listing, parsedJd: score.parsedJd, matches, resume, gapAnalysis } }];"
+      },
+      "id": "a1000001-0000-4000-8000-000000000010",
+      "name": "Assemble Final Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a1000001-0000-4000-8000-000000000011",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"Unauthorized\"\n}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "a1000001-0000-4000-8000-000000000012",
+      "name": "Respond Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Secret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Secret": {
+      "main": [
+        [
+          {
+            "node": "Authorized?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Authorized?": {
+      "main": [
+        [
+          {
+            "node": "Merge Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Input": {
+      "main": [
+        [
+          {
+            "node": "Parse JD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JD": {
+      "main": [
+        [
+          {
+            "node": "Parse and Score Projects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse and Score Projects": {
+      "main": [
+        [
+          {
+            "node": "Match Explanation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Explanation": {
+      "main": [
+        [
+          {
+            "node": "Resume Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Generation": {
+      "main": [
+        [
+          {
+            "node": "Gap Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gap Analysis": {
+      "main": [
+        [
+          {
+            "node": "Assemble Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Final Response": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": []
+}
